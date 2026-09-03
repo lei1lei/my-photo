@@ -1,0 +1,30 @@
+name: Build EXE
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: 获取代码
+      uses: actions/checkout@v4
+
+    - name: 安装Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: 安装依赖库
+      run: |
+        pip install pyinstaller rembg pillow pyqt6 opencv-python numpy
+
+    - name: 打包成EXE
+      run: |
+        pyinstaller --onefile --windowed --name="极速证件照工坊" --add-data "clothes;clothes" --hidden-import=rembg --hidden-import=rembg.sessions studio.py
+
+    - name: 上传成品
+      uses: actions/upload-artifact@v4
+      with:
+        name: 极速证件照工坊
+        path: dist/极速证件照工坊.exe
