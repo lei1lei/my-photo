@@ -15,14 +15,15 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: 安装所有必需库（含全部依赖）
+    - name: 安装所有依赖
       run: |
+        pip install --upgrade pip
         pip install pyinstaller
         pip install rembg pillow pyqt6 opencv-python numpy onnxruntime pymatting scipy tqdm pooch
 
-    - name: 打包EXE（完全收集）
+    - name: 打包EXE（完全收集所有依赖）
       run: |
-        pyinstaller --onefile --windowed --name="极速证件照工坊" --add-data "clothes;clothes" --hidden-import=rembg --hidden-import=rembg.sessions --hidden-import=onnxruntime --hidden-import=pymatting --hidden-import=scipy --hidden-import=numpy --collect-all rembg --collect-all onnxruntime --collect-all pymatting --collect-all scipy --copy-metadata rembg --copy-metadata onnxruntime --copy-metadata pymatting studio.py
+        pyinstaller --onefile --windowed --name="极速证件照工坊" --add-data "clothes;clothes" --hidden-import=rembg --hidden-import=rembg.sessions --hidden-import=onnxruntime --hidden-import=pymatting --hidden-import=scipy --hidden-import=numpy --collect-all rembg --collect-all onnxruntime --collect-all pymatting --collect-all scipy --collect-all tqdm --copy-metadata rembg --copy-metadata onnxruntime --copy-metadata pymatting --copy-metadata scipy studio.py
 
     - name: 上传成品
       uses: actions/upload-artifact@v4
