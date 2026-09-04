@@ -1,19 +1,30 @@
 # -*- coding: utf-8 -*-
 """
-极速证件照工坊 V1.0 - 完全离线版
-功能：AI抠图/换背景/换服装/尺寸联动/50种规格
+极速证件照工坊 V2.0 - 修复空白问题
+完全离线，支持AI抠图、换背景、换服装、尺寸联动
 """
 import sys
 import os
+import traceback
 from PIL import Image
 import numpy as np
+
+# PyQt6 导入
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
-from rembg import remove
 
-# ---------- 获取资源路径（兼容打包）----------
+# AI抠图（如果失败则降级）
+try:
+    from rembg import remove
+    REMBG_AVAILABLE = True
+except Exception:
+    REMBG_AVAILABLE = False
+    print("警告: rembg 导入失败，AI抠图不可用")
+
+# ---------- 资源路径 ----------
 def resource_path(relative_path):
+    """获取资源的绝对路径（兼容开发和打包后）"""
     try:
         base_path = sys._MEIPASS
     except Exception:
@@ -86,7 +97,7 @@ SPECS_DB = {
 class IDPhotoStudio(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("极速证件照工坊 V1.0")
+        self.setWindowTitle("极速证件照工坊 V2.0")
         self.setGeometry(100, 100, 1400, 800)
         self.setAcceptDrops(True)
         
@@ -143,10 +154,13 @@ class IDPhotoStudio(QMainWindow):
         panel_layout.addWidget(btn_import)
         
         # 2. 抠图
-        btn_remove = QPushButton("✂️ 2. 一键AI抠图")
-        btn_remove.setStyleSheet("font-size:14px; padding:8px; background:#4CAF50; color:white;")
-        btn_remove.clicked.connect(self.do_remove_bg)
-        panel_layout.addWidget(btn_remove)
+        self.btn_remove = QPushButton("✂️ 2. 一键AI抠图")
+        self.btn_remove.setStyleSheet("font-size:14px; padding:8px; background:#4CAF50; color:white;")
+        self.btn_remove.clicked.connect(self.do_remove_bg)
+        if not REMBG_AVAILABLE:
+            self.btn_remove.setEnabled(False)
+            self.btn_remove.setText("✂️ AI抠图不可用（请联网重新下载）")
+        panel_layout.addWidget(self.btn_remove)
         
         # 3. 背景
         gb_bg = QGroupBox("🎨 背景设置")
@@ -272,7 +286,9 @@ class IDPhotoStudio(QMainWindow):
         clothes_dir = resource_path("clothes")
         if not os.path.exists(clothes_dir):
             os.makedirs(clothes_dir, exist_ok=True)
-            # 生成演示服装
+            # 创建说明文件
+            with open(os.path.join(clothes_dir, "说明.txt"), "w", encoding="utf-8") as f:
+                f.write("将透明背景的PNG服装图片放入此文件夹，程序会自动加载。\n文件名将显示为服装名称。")
             self.create_demo_clothes()
             return
         
@@ -298,13 +314,13 @@ class IDPhotoStudio(QMainWindow):
                     col = 0
                     row += 1
             except Exception as e:
-                print(f"加载失败: {filename}")
+                print(f"加载服装 {filename} 失败: {e}")
         
         if not self.clothes_dict:
             self.create_demo_clothes()
     
     def create_demo_clothes(self):
-        """生成演示服装"""
+        """生成演示服装（彩色方块）"""
         demos = [
             ("男白衬衫", (200,200,200)),
             ("男蓝衬衫", (100,150,255)),
@@ -381,6 +397,9 @@ class IDPhotoStudio(QMainWindow):
             Qt.TransformationMode.SmoothTransformation))
     
     def do_remove_bg(self):
+        if not REMBG_AVAILABLE:
+            QMessageBox.critical(self, "错误", "AI抠图模块不可用，请检查网络后重新下载。")
+            return
         if self.original_pixmap is None:
             QMessageBox.warning(self, "提示", "请先导入照片")
             return
@@ -519,8 +538,20 @@ class IDPhotoStudio(QMainWindow):
                 Qt.TransformationMode.SmoothTransformation))
 
 # ---------- 启动 ----------
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
     win = IDPhotoStudio()
     win.show()
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        # 如果崩溃，显示错误消息框
+        import traceback
+        error_msg = traceback.format_exc()
+        try:
+            QMessageBox.critical(None, "程序错误", f"启动失败:\n{error_msg}")
+        except:
+            print(error_msg)
