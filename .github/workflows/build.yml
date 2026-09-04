@@ -15,13 +15,13 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: 安装依赖库
+    - name: 安装依赖库（包含onnxruntime）
       run: |
-        pip install pyinstaller rembg pillow pyqt6 opencv-python numpy
+        pip install pyinstaller rembg pillow pyqt6 opencv-python numpy onnxruntime
 
-    - name: 打包成EXE
+    - name: 打包成EXE（显式包含onnxruntime）
       run: |
-        pyinstaller --onefile --windowed --name="极速证件照工坊" --add-data "clothes;clothes" --hidden-import=rembg --hidden-import=rembg.sessions studio.py
+        pyinstaller --onefile --windowed --name="极速证件照工坊" --add-data "clothes;clothes" --hidden-import=rembg --hidden-import=rembg.sessions --hidden-import=onnxruntime --collect-all rembg --collect-all onnxruntime studio.py
 
     - name: 上传成品
       uses: actions/upload-artifact@v4
